@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Molang no Minecraft - Único HTML</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #87CEEB; font-family: sans-serif; }
+    #info {
+      position: absolute; top: 15px; left: 15px;
+      background: rgba(0, 0, 0, 0.65); color: #fff;
+      padding: 12px 18px; border-radius: 8px; border: 2px solid #55FF55;
+    }
+    h1 { margin: 0 0 5px 0; font-size: 18px; color: #55FF55; }
+    p { margin: 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <h1>Molang no Mundo Minecraft (Mojang)</h1>
+    <p>Clica com o rato para fazer o Molang saltar! Arrasta para rodar a câmara.</p>
+  </div>
+
+  <!-- Importar Three.js para renderizar gráficos 3D em blocos -->
+  <script src="https://cloudflare.com"></script>
+  <script>
+    // 1. Configuração da Cena e Câmara
+    const cena = new THREE.Scene();
+    cena.background = new THREE.Color(0x87CEEB); // Céu azul estilo Minecraft
+    const camara = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camara.position.set(0, 4, 8);
+    camara.lookAt(0, 1.5, 0);
+
+    const renderizador = new THREE.WebGLRenderer({ antialias: false });
+    renderizador.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderizador.domElement);
+
+    // 2. Luzes
+    const luzAmbiente = new THREE.AmbientLight(0xffffff, 0.7);
+    cena.add(luzAmbiente);
+    const luzSol = new THREE.DirectionalLight(0xffffff, 0.8);
+    luzSol.position.set(5, 10, 7);
+    cena.add(luzSol);
+
+    // 3. Chão de Blocos de Relva (Estilo Mojang)
+    const geoBloco = new THREE.BoxGeometry(1, 1, 1);
+    const matRelva = new THREE.MeshLambertMaterial({ color: 0x55aa33 });
+    const matTerra = new THREE.MeshLambertMaterial({ color: 0x8b5a2b });
+
+    for (let x = -5; x <= 5; x++) {
+      for (let z = -5; z <= 5; z++) {
+        const blocoRelva = new THREE.Mesh(geoBloco, matRelva);
+        blocoRelva.position.set(x, -0.5, z);
+        cena.add(blocoRelva);
+
+        const blocoTerra = new THREE.Mesh(geoBloco, matTerra);
+        blocoTerra.position.set(x, -1.5, z);
+        cena.add(blocoTerra);
+      }
+    }
+
+    // 4. Criar o Coelho Molang em Blocos (Voxel)
+    const molang = new THREE.Group();
+    const matBranco = new THREE.MeshLambertMaterial({ color: 0xffffff });
+    const matRosa = new THREE.MeshLambertMaterial({ color: 0xff99aa });
+    const matPreto = new THREE.MeshLambertMaterial({ color: 0x222222 });
+
+    // Corpo gordinho em bloco
+    const corpo = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.8, 1.4), matBranco);
+    corpo.position.y = 0.9;
+    molang.add(corpo);
+
+    // Orelhas
+    const geoOrelha = new THREE.BoxGeometry(0.3, 0.7, 0.25);
+    const orelhaEsq = new THREE.Mesh(geoOrelha, matBranco);
+    orelhaEsq.position.set(-0.3, 2.1, 0);
+    molang.add(orelhaEsq);
+
+    const orelhaDir = new THREE.Mesh(geoOrelha, matBranco);
+    orelhaDir.position.set(0.3, 2.1, 0);
+    molang.add(orelhaDir);
+
+    // Olhos
+    const geoOlho = new THREE.BoxGeometry(0.15, 0.15, 0.1);
+    const olhoEsq = new THREE.Mesh(geoOlho, matPreto);
+    olhoEsq.position.set(-0.35, 1.3, 0.7);
+    molang.add(olhoEsq);
+
+    const olhoDir = new THREE.Mesh(geoOlho, matPreto);
+    olhoDir.position.set(0.35, 1.3, 0.7);
+    molang.add(olhoDir);
+
+    // Bochechas cor-de-rosa
+    const geoBochecha = new THREE.BoxGeometry(0.25, 0.15, 0.1);
+    const bochechaEsq = new THREE.Mesh(geoBochecha, matRosa);
+    bochechaEsq.position.set(-0.5, 1.1, 0.7);
+    molang.add(bochechaEsq);
+
+    const bochechaDir = new THREE.Mesh(geoBochecha, matRosa);
+    bochechaDir.position.set(0.5, 1.1, 0.7);
+    molang.add(bochechaDir);
+
+    // Focinho / Boca
+    const boca = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.1, 0.1), matPreto);
+    boca.position.set(0, 1.15, 0.7);
+    molang.add(boca);
+
+    // Bracinhos
+    const geoBraco = new THREE.BoxGeometry(0.25, 0.5, 0.25);
+    const bracoEsq = new THREE.Mesh(geoBraco, matBranco);
+    bracoEsq.position.set(-0.9, 0.9, 0.1);
+    molang.add(bracoEsq);
+
+    const bracoDir = new THREE.Mesh(geoBraco, matBranco);
+    bracoDir.position.set(0.9, 0.9, 0.1);
+    molang.add(bracoDir);
+
+    cena.add(molang);
+
+    // 5. Lógica de Salto e Controlo
+    let velocidadeY = 0;
+    let noChao = true;
+    let anguloCamara = 0;
+
+    window.addEventListener('mousedown', () => {
+      if (noChao) {
+        velocidadeY = 0.22;
+        noChao = false;
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (e.buttons === 1) {
+        anguloCamara -= e.movementX * 0.01;
+        camara.position.x = Math.sin(anguloCamara) * 8;
+        camara.position.z = Math.cos(anguloCamara) * 8;
+        camara.lookAt(0, 1.5, 0);
+      }
+    });
+
+    // 6. Ciclo de Animação (Inspirado nas expressões math.sin do Molang)
+    let tempo = 0;
+    function animar() {
+      requestAnimationFrame(animar);
+      tempo += 0.05;
+
+      // Gravidade do salto
+      if (!noChao) {
+        molang.position.y += velocidadeY;
+        velocidadeY -= 0.012;
+        if (molang.position.y <= 0) {
+          molang.position.y = 0;
+          noChao = true;
+        }
+      }
+
+      // Movimento suave das orelhas e braços
+      orelhaEsq.rotation.z = Math.sin(tempo * 2) * 0.1;
+      orelhaDir.rotation.z = -Math.sin(tempo * 2) * 0.1;
+      bracoEsq.rotation.x = Math.sin(tempo * 3) * 0.2;
+      bracoDir.rotation.x = -Math.sin(tempo * 3) * 0.2;
+
+      renderizador.render(cena, camara);
+    }
+
+    animar();
+
+    // Ajustar ecrã ao redimensionar janela
+    window.addEventListener('resize', () => {
+      camara.aspect = window.innerWidth / window.innerHeight;
+      camara.updateProjectionMatrix();
+      renderizador.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
